@@ -1,0 +1,87 @@
+# #preprocessing the data
+# x = read.csv("HMM_sample_v2.csv",header =T)
+# skills = x[,c(15:19)]
+#
+# # Applying PCA----if there is only one skill column then PCA is not required
+# #install.packages('caret')
+# library(caret)
+# #install.packages('e1071')
+# library(e1071)
+# pca = preProcess(x = skills, method = 'pca', pcaComp = 1)
+# performance_pca = predict(pca, skills)
+
+# ###pre-processing dataset for HMM model
+# x_ds$hint = scale(x$Hints)
+# x_ds$incorrect = scale(x$Incorrects)
+# x_ds$step_duration = scale(x$Step.Duration..sec.)
+# x_ds$score = scale(x$score)
+# x_ds$skill = scale(performance_pca)
+
+
+# # #HMM Model
+# library(depmixS4)
+# set.seed(1)
+# HMM<-depmix(list(score~1,skill~1,step_duration~1,incorrect~1,hint~1),data=x_ds,nstates=4,family=list(gaussian(),gaussian(),gaussian(),gaussian(),gaussian()))
+#
+# HMMfit =fit(HMM, verbose =FALSE,emcontrol =em.control(maxit = 6,random.start = TRUE))
+
+
+### Saving the model
+save(HMMfit,file="hmm_model.rda")
+HMMpost = posterior(HMMfit)
+x = cbind(x,HMMpost)
+# Plot of posterior probabilities
+layout(1:5)
+plot(HMMpost$state, type='l', main='State in which student is in', xlab='', ylab='state')
+plot(HMMpost$S1, type='l', main='Probab. of State 1', xlab='', ylab='Prob. S_1',col = "Green")
+plot(HMMpost$S2, type='l', main='Probab. of State 2', xlab='', ylab='Prob. S_2',col = "Blue")
+plot(HMMpost$S3, type='l', main='Probab. of State 3', xlab='', ylab='Prob. S_3',col = "Red")
+plot(HMMpost$S4, type='l', main='Probab. of State 4', xlab='', ylab='Prob. S_4',col = "Yellow")
+
+# Plot of posterior probabilities
+layout(1:5)
+plot(HMMpost$state[25:199], type='l', main='State in which student is in', xlab='', ylab='state',abline(v = c(4,28,46,96,159)))
+plot(HMMpost$S1[25:199], type='l', main='Probab. of State 1', xlab='Topics', ylab='Prob. S_1',col = "Brown",abline(v = c(4,28,46,96,159)))
+plot(HMMpost$S2[25:199], type='l', main='Probab. of State 2', xlab='Topics', ylab='Prob. S_2',col = "Green",abline(v = c(4,28,46,96,159)))
+plot(HMMpost$S3[25:199], type='l', main='Probab. of State 3', xlab='Topics', ylab='Prob. S_3',col = "Red",abline(v = c(4,28,46,96,159)))
+plot(HMMpost$S4[25:199], type='l', main='Probab. of State 4', xlab='Topics', ylab='Prob. S_4',col = "Yellow",abline(v = c(4,28,46,96,159)))
+
+
+# Plot of posterior probabilities
+layout(1:5)
+plot(HMMpost$state[425:664], type='l', main='State in which student is in', xlab='Lessons', ylab='state',abline(v = c(6,17,57,114,139,165,201,232)))
+plot(HMMpost$S1[425:664], type='l', main='Probab. of State 1', xlab='Topics', ylab='Prob. S_1',col = "Brown",abline(v =c(6,17,57,114,139,165,201,232)))
+plot(HMMpost$S2[425:664], type='l', main='Probab. of State 2', xlab='Topics', ylab='Prob. S_2',col = "Green",abline(v = c(6,17,57,114,139,165,201,232)))
+plot(HMMpost$S3[425:664], type='l', main='Probab. of State 3', xlab='Topics', ylab='Prob. S_3',col = "Red",abline(v = c(6,17,57,114,139,165,201,232)))
+plot(HMMpost$S4[425:664], type='l', main='Probab. of State 4', xlab='Topics', ylab='Prob. S_4',col = "Yellow",abline(v = c(6,17,57,114,139,165,201,232)))
+
+### Example returning the concepts name for state 3 fo student "stu_0102350af2"
+index = which(x$`HMMpost$state` == 3& x$Anon.Student.Id =="stu_0102350af2")
+concept = x$KC.SubSkills._01[index]
+concept = x[index,15]
+
+##function for task 1
+task1 = function(state,y){
+  y = as.character(y)
+  index = which(x$`HMMpost$state` == state& x$Anon.Student.Id ==y)
+  concept = x$KC.SubSkills._01[index]
+  return(concept)
+
+}
+
+
+#Predicting through HMM model what can be state of a student "stu_b7714a859c" in next topic
+tmp = HMMfit@trDens
+transition_mat = matrix(unlist(tmp),ncol=4, byrow=T)
+# 15896 is the last observation
+prediction_prob = as.matrix(HMMpost[15896,c(2:5)])%*%transition_mat
+new_state  = which.is.max(prediction_prob)
+
+#function to predict
+task2 = function(y){
+  y = as.character(y)
+  idx= which(x$Anon.Student.Id == y)
+  prediction_prob = as.matrix(HMMpost[length(idx),c(2:5)])%*%transition_mat
+  new_state  = which.is.max(prediction_prob)
+  return(new_state)
+}
