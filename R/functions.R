@@ -23,6 +23,6 @@ task2 = function(y){
   y = as.character(y)
   idx= which(x$Anon.Student.Id == y)
   prediction_prob = as.matrix(HMMpost[length(idx),c(2:5)])%*%transition_mat
-  new_state  = which.is.max(prediction_prob)
+  new_state  = which.max(prediction_prob)
   return(new_state)
 }
