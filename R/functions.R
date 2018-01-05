@@ -9,6 +9,9 @@ x = cbind(x,HMMpost$state)
 tmp = HMMfit@trDens
 transition_mat = matrix(unlist(tmp),ncol=4, byrow=T)
 
+# Saving the Output file
+Output_ALpath = x
+write.csv(Output_ALpath,file = "/datadrive/dataset/ALpath_OUTPUT/ALpath_output.csv",row.names = F)
 
 #' task1 function
 #'
